@@ -7,6 +7,14 @@
 //
 
 #import "AppDelegate.h"
+#import "LocationHelper.h"
+#import <FirebaseCore/FirebaseCore.h>
+
+@import GooglePlaces;
+@import GoogleMaps;
+@import FirebaseDynamicLinks;
+
+static NSString *const CUSTOM_URL_SCHEME = @"tp_app";
 
 @interface AppDelegate ()
 
@@ -17,6 +25,15 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    [FIROptions defaultOptions].deepLinkURLScheme = CUSTOM_URL_SCHEME;
+    
+    [FIRApp configure];
+    
+    [GMSPlacesClient provideAPIKey:@"AIzaSyBBkTRFFlLxUkzVQ3w58aKq9uUUSUVwqmE"];
+    
+    [GMSServices provideAPIKey:@"AIzaSyBBkTRFFlLxUkzVQ3w58aKq9uUUSUVwqmE"];
+    
     return YES;
 }
 
@@ -24,6 +41,8 @@
 - (void)applicationWillResignActive:(UIApplication *)application {
     // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
     // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+    
+    [[LocationHelper instance] stopLocationManager];
 }
 
 
@@ -47,6 +66,41 @@
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     // Saves changes in the application's managed object context before the application terminates.
     [self saveContext];
+}
+
+- (BOOL)application:(UIApplication *)app
+            openURL:(NSURL *)url
+            options:(NSDictionary<NSString *, id> *)options {
+    return [self application:app
+                     openURL:url
+           sourceApplication:options[UIApplicationOpenURLOptionsSourceApplicationKey]
+                  annotation:options[UIApplicationOpenURLOptionsAnnotationKey]];
+}
+
+- (BOOL)application:(UIApplication *)application
+            openURL:(NSURL *)url
+  sourceApplication:(NSString *)sourceApplication
+         annotation:(id)annotation {
+    FIRDynamicLink *dynamicLink = [[FIRDynamicLinks dynamicLinks] dynamicLinkFromCustomSchemeURL:url];
+    
+    if (dynamicLink) {
+        // Handle the deep link. For example, show the deep-linked content or
+        // apply a promotional offer to the user's account.
+        // ...
+        return YES;
+    }
+    return NO;
+}
+
+- (BOOL)application:(UIApplication *)application
+continueUserActivity:(NSUserActivity *)userActivity
+ restorationHandler:(void (^)(NSArray *))restorationHandler {
+    BOOL handled = [[FIRDynamicLinks dynamicLinks] handleUniversalLink:userActivity.webpageURL
+                                                            completion:^(FIRDynamicLink * _Nullable dynamicLink,
+                                                                         NSError * _Nullable error) {
+                                                                // ...
+                                                            }];
+    return handled;
 }
 
 
